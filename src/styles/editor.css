@@ -1,0 +1,21 @@
+.ql-container {
+    min-height: 250px;
+}
+
+.ql-container.ql-snow,
+.ql-toolbar.ql-snow {
+    border: 0.2px solid #c9c8c8;
+    background-color: white;
+}
+
+.ql-toolbar.ql-snow {
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
+}
+
+.ql-container.ql-snow {
+    min-height: 15vh;
+    height: auto;
+    padding: 0px;
+    margin: 0px;
+}
