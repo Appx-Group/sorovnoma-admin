@@ -24,7 +24,7 @@ api.interceptors.response.use(
             localStorage.setItem("pathname_on_error", window.location.pathname);
             window.location.href = "/500";
         }
-        if (error.response.status === (401 || 403)) {
+        if (error.response.status === 401 || error.response.status === 403) {
             if (window.location.pathname !== "/auth") {
                 localStorage.clear();
                 window.location.href = "/auth";
