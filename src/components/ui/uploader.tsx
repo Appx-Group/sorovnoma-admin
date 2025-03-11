@@ -57,35 +57,45 @@ const Uploader = ({ image_url, name, onUploadSuccess }: UploadProps) => {
             // Log the complete response for debugging
             console.log("Media API Response:", response);
             
-            if (response && response.success && response.data) {
-                // The response.data now has the format: { url, key, project, id }
-                const mediaData = response.data as IMediaResponse;
+            if (response && response.success) {
+                // Check if data property exists in the response
+                const responseData = 'data' in response ? response.data : null;
                 
-                // Update file list with the response data
-                setFileList([
-                    {
-                        uid: String(mediaData.id),
-                        status: "done",
-                        name: file.name,
-                        url: mediaData.url,
-                        // Store the file key for deletion
-                        originFileObj: {
-                            ...file,
+                if (responseData) {
+                    // The response.data now has the format: { url, key, project, id }
+                    const mediaData = responseData as IMediaResponse;
+                    
+                    // Update file list with the response data
+                    setFileList([
+                        {
                             uid: String(mediaData.id),
-                            key: mediaData.key,
-                        } as any
-                    },
-                ]);
-                
-                // Call the onUploadSuccess callback
-                if (onUploadSuccess) {
-                    onUploadSuccess({
-                        success: true,
-                        data: mediaData
-                    });
+                            status: "done",
+                            name: file.name,
+                            url: mediaData.url,
+                            // Store the file key for deletion
+                            originFileObj: {
+                                ...file,
+                                uid: String(mediaData.id),
+                                key: mediaData.key,
+                            } as any
+                        },
+                    ]);
+                    
+                    // Call the onUploadSuccess callback
+                    if (onUploadSuccess) {
+                        onUploadSuccess({
+                            success: true,
+                            data: mediaData
+                        });
+                    }
+                    
+                    customToast("SUCCESS", "File uploaded successfully");
+                } else {
+                    // Show detailed error from the response
+                    const errorMsg = response?.message || "Unknown upload error";
+                    console.error("Upload error:", errorMsg);
+                    customToast("ERROR", errorMsg);
                 }
-                
-                customToast("SUCCESS", "File uploaded successfully");
             } else {
                 // Show detailed error from the response
                 const errorMsg = response?.message || "Unknown upload error";

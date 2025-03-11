@@ -146,7 +146,7 @@ class MediaService {
             // Create payload with just the key parameter, matching original implementation
             const payload = {
                 key: fileId,
-                project: import.meta.env.VITE_IMAGE_UPLOAD_CLIENT || "ovoz"
+                project: import.meta.env.MEDIA_PROJECT_NAME || "ovoz"
             };
             
             // Make request 

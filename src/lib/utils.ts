@@ -59,9 +59,9 @@ export const wordSlicer = (word: string) => {
  */
 export const generateMediaAuthKey = () => {
     // Use the exact environment variables from the original implementation 
-    const client = import.meta.env.VITE_IMAGE_UPLOAD_CLIENT || "ovoz";
-    const secret = import.meta.env.VITE_IMAGE_UPLOAD_SECRET || "gCosGwTqCNCpIoGnS28V7TfD2V0obDbPaJSY6LvmN7Lg0XPl5Rt6ne9vdbwL+Q";
-    const key = import.meta.env.VITE_IMAGE_UPLOAD_KEY || "G2DPdL0RN2ldSRuKpnWSRlfZrzBBEtc0qhZ+xQaRjjdTZdV89bausl1KR6l1SkqY";
+    const client = import.meta.env.VITE_IMAGE_UPLOAD_CLIENT;
+    const secret = import.meta.env.VITE_IMAGE_UPLOAD_SECRET;
+    const key = import.meta.env.VITE_IMAGE_UPLOAD_KEY;
 
     const payload = {
         client,

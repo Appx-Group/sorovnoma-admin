@@ -296,7 +296,6 @@ const DateTimePicker = ({
               </div>
               <Button 
                 type="button" 
-                variant="outline" 
                 className="ml-2"
                 onClick={handleTimeChange}
                 disabled={!selectedDate}
