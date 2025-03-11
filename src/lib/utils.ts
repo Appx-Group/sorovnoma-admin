@@ -2,6 +2,7 @@ import {type ClassValue, clsx} from "clsx";
 import {twMerge} from "tailwind-merge";
 import toastResponsive from "react-hot-toast";
 import dateFormat from "dateformat";
+import CryptoJS from "crypto-js";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -11,20 +12,24 @@ export const numberSpacer = (amount: number) => {
     return parseInt(String(amount), 10).toLocaleString().replace(/,/g, " ");
 };
 
-export const customToast = (type: "SUCCESS" | "ERROR", message: string) => {
+export const customToast = (type: string, message: string) => {
     switch (type) {
         case "SUCCESS":
-            toastResponsive.success(`${message}`, {
-                duration: 2000,
-            });
+            toastResponsive.success(message, {duration: 1500});
             break;
         case "ERROR":
-            toastResponsive.error(`${message}`, {
-                duration: 3000,
-            });
+            toastResponsive.error(message, {duration: 1500});
+            break;
+        case "DEFAULT":
+            toastResponsive(message, {duration: 1500});
+            break;
+        case "LOADING":
+            toastResponsive.loading(message, {duration: 1500});
+            break;
+        case "CUSTOM":
+            toastResponsive.custom(message, {duration: 1500});
             break;
         default:
-            toastResponsive("Something went wrong!");
             break;
     }
 };
@@ -46,4 +51,34 @@ export const capitalizedText = (text: string) => {
 
 export const wordSlicer = (word: string) => {
     return word.length <= 65 ? word : `${word.slice(0, 65)} ...`;
+};
+
+/**
+ * Generates an authentication key for the Media API
+ * @returns The encrypted authentication key
+ */
+export const generateMediaAuthKey = () => {
+    // Use the exact environment variables from the original implementation 
+    const client = import.meta.env.VITE_IMAGE_UPLOAD_CLIENT || "ovoz";
+    const secret = import.meta.env.VITE_IMAGE_UPLOAD_SECRET || "gCosGwTqCNCpIoGnS28V7TfD2V0obDbPaJSY6LvmN7Lg0XPl5Rt6ne9vdbwL+Q";
+    const key = import.meta.env.VITE_IMAGE_UPLOAD_KEY || "G2DPdL0RN2ldSRuKpnWSRlfZrzBBEtc0qhZ+xQaRjjdTZdV89bausl1KR6l1SkqY";
+
+    const payload = {
+        client,
+        secret,
+        time: Date.now(),
+    };
+
+    try {
+        // Use the exact same CryptoJS approach with minimal manipulation
+        const encrypted = CryptoJS.AES.encrypt(
+            JSON.stringify(payload),
+            key
+        ).toString();
+        
+        return encrypted;
+    } catch (error) {
+        console.error("Error generating auth key:", error);
+        throw error;
+    }
 };

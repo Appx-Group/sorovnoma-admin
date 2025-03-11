@@ -6,6 +6,7 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "react-hot-toast";
 
 import "./index.css";
+import "antd/dist/reset.css"; // Import Ant Design reset styles
 import App from "./App.tsx";
 
 export const queryClient = new QueryClient();

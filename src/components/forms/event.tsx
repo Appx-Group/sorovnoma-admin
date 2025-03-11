@@ -3,6 +3,7 @@ import {EventSchema} from "@/lib";
 import {useForm} from "react-hook-form";
 import {zodResolver} from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useState } from "react";
 
 import {Form, FormControl, FormField, FormItem, FormLabel, FormMessage,} from "@/components/ui/form";
 import {Button} from "../ui/button";
@@ -20,6 +21,10 @@ import {useGetCandidates} from "@/hooks/useCandidate.ts";
 import {SingleCandidateType} from "@/types/candidate";
 import {PiTelegramLogo} from "react-icons/pi";
 import {Textarea} from "@/components/ui/textarea.tsx";
+import DateTimePicker, { getMinimumAllowedDateTime } from "@/components/ui/date-time-picker.tsx";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { customToast } from "@/lib/utils.ts";
 
 type EventFormProps = {
     action: "CREATE" | "EDIT",
@@ -54,6 +59,8 @@ const EventForm = ({action, data, eventId}: EventFormProps) => {
 
     const sendNotificationMutation = useSendEventNotification()
 
+    const [mediaData, setMediaData] = useState<{ imageUrl: string; imageId: string; imageName: string } | null>(null);
+
     const form = useForm<z.infer<typeof EventSchema>>({
         resolver: zodResolver(EventSchema),
         defaultValues: {
@@ -62,7 +69,8 @@ const EventForm = ({action, data, eventId}: EventFormProps) => {
             image: data?.imageUrl,
             subscribeChannels: data?.subscribeChannels,
             sentChannels: data?.sentChannels,
-            finishDate: data?.finishDate,
+            finishDate: data?.finishDate ? new Date(data.finishDate) : undefined,
+            isActive: data?.isActive ?? true,
         }
     });
 
@@ -78,65 +86,105 @@ const EventForm = ({action, data, eventId}: EventFormProps) => {
         }
     }
 
+    const handleMediaUploadSuccess = (response: any) => {
+        if (response && response.success && response.data) {
+            // Updated to match the format from the API: { url, key, project, id }
+            setMediaData({
+                imageUrl: response.data.url,
+                imageId: response.data.key,
+                imageName: response.data.key.split('/').pop() || 'image'
+            });
+            
+            form.setValue("image", response.data.url);
+        } else if (response && response.success && response.data === null) {
+            // Handle delete case
+            setMediaData(null);
+            form.setValue("image", undefined);
+        }
+    };
+
     function onSubmit(values: z.infer<typeof EventSchema>) {
         const formData = new FormData();
 
-        // // Sanitize description
-        // const sanitizedDescr = sanitizeHtml(convertHtmlToPlainText(values?.descr!), sanitizeOptions);
-        //
-        // console.log(values.descr)
-        // console.log(sanitizedDescr)
+        // Handle date formatting
+        if (values.finishDate) {
+            try {
+                // Ensure the date is valid and at least 10 minutes in the future
+                const currentDate = new Date();
+                const minDate = new Date(currentDate.getTime() + 10 * 60 * 1000);
+                const dateObj = new Date(values.finishDate);
+                
+                if (dateObj < minDate) {
+                    customToast("ERROR", "Finish date must be at least 10 minutes in the future");
+                    return;
+                }
+                
+                // Format date exactly as required by the API
+                const isoString = dateObj.toISOString();
+                console.log("Submitting finish date:", isoString);
+                
+                // Set the date directly as a string value, not in FormData
+                formData.set("finishDate", isoString);
+            } catch (error) {
+                console.error("Error formatting date:", error);
+                customToast("ERROR", "Invalid date format");
+                return;
+            }
+        } else {
+            customToast("ERROR", "Finish date is required");
+            return;
+        }
 
-
+        // Handle non-image, non-date form data
         Object.entries(values).forEach(([key, value]) => {
-            if (value instanceof File) {
-                formData.append(key, value, value.name);
-            } else {
-                if (value !== undefined) {
-                    
-                    if (key === "subscribeChannels") {
-                        // @ts-ignore
-                        if (value.some(channel => channel.hasOwnProperty("createdAt"))) {
-                            formData.append(key, JSON.stringify(value.map((channel: { id: any; }) => channel.id)));
-                        } else {
-                            formData.append(key, JSON.stringify(value));
-                        }
-                    } else if (key === "sentChannels") {
-                        // @ts-ignore
-                        if (value.some(channel => channel.hasOwnProperty("createdAt"))) {
-                            formData.append(key, JSON.stringify(value.map((channel: { id: any; }) => channel.id)));
-                        } else {
-                            formData.append(key, JSON.stringify(value));
-                        }
-                    } else if (key === "finishDate") {
-                        formData.append(key, new Date(value).toISOString());
+            // Skip finishDate and image as we handle them separately
+            if (key === "finishDate" || key === "image") return;
+            
+            if (value !== undefined) {
+                if (key === "subscribeChannels" || key === "sentChannels") {
+                    if (Array.isArray(value) && value.some(channel => typeof channel === 'object' && channel.hasOwnProperty("createdAt"))) {
+                        formData.append(key, JSON.stringify(value.map((channel: { id: any; }) => channel.id)));
                     } else {
-                        formData.append(key, value.toString());
+                        formData.append(key, JSON.stringify(value));
                     }
+                } else {
+                    formData.append(key, value.toString());
                 }
             }
         });
 
-        for (let [key, value] of formData.entries()) {
-            console.log(`${key} ${value}`)
-
-            if (key === "image") {
-                if (typeof value !== "object") {
-                    formData.delete("image")
-                }
-            }
+        // Handle image data with clear priority
+        if (mediaData) {
+            // Use the Media API data format that we confirmed is working
+            formData.append("imageUrl", mediaData.imageUrl);
+            formData.append("imageId", mediaData.imageId);
+            formData.append("imageName", mediaData.imageName);
+        } else if (data?.imageUrl && action === "EDIT") {
+            // For edit mode, use existing image data if no new upload
+            formData.append("imageUrl", data.imageUrl);
+            formData.append("imageId", data.imageId || "");
+            formData.append("imageName", data.imageName || "");
         }
 
-        if (action === "CREATE") {
-            createEventMutation.mutate(formData as unknown as CreateOrUpdateEventType)
+        // Debugging output - log the entire FormData contents
+        console.log("Form data entries:");
+        for (let [key, value] of formData.entries()) {
+            console.log(`${key}: ${value}`);
+        }
 
-        } else if (action === "EDIT") {
-            updateEventMutation.mutate({
-                id: data?.id!,
-                data: formData as unknown as CreateOrUpdateEventType
-            })
-        } else {
-            return null
+        // Submit the form
+        try {
+            if (action === "CREATE") {
+                createEventMutation.mutate(formData as unknown as CreateOrUpdateEventType);
+            } else if (action === "EDIT") {
+                updateEventMutation.mutate({
+                    id: data?.id!,
+                    data: formData as unknown as CreateOrUpdateEventType
+                });
+            }
+        } catch (error) {
+            console.error("Error submitting form:", error);
+            customToast("ERROR", "Failed to submit the form");
         }
     }
 
@@ -173,12 +221,11 @@ const EventForm = ({action, data, eventId}: EventFormProps) => {
                                 <FormItem>
                                     <FormLabel>Tugash sanasi:</FormLabel>
                                     <FormControl>
-                                        <DatePickerDemo
-                                            placeholder={"Tugash sanasi"}
-                                            date={form.getValues("finishDate")}
-                                            setDate={(date) => {
-                                                form.setValue("finishDate", date!)
-                                            }}/>
+                                        <DateTimePicker
+                                            placeholder="Tugash sanasi va vaqtini tanlang"
+                                            date={field.value}
+                                            setDate={(date) => form.setValue("finishDate", date!, { shouldValidate: true })}
+                                        />
                                     </FormControl>
                                     <FormMessage/>
                                 </FormItem>
@@ -194,9 +241,32 @@ const EventForm = ({action, data, eventId}: EventFormProps) => {
                                     <FormLabel>Muqova rasmi:</FormLabel>
                                     <FormControl>
                                         <Uploader
-                                            name={data?.imageName}
-                                            image_url={field.value}
-                                            setFile={(value) => form.setValue("image", value)}
+                                            name={mediaData?.imageName || data?.imageName}
+                                            image_url={mediaData?.imageUrl || field.value}
+                                            onUploadSuccess={handleMediaUploadSuccess}
+                                        />
+                                    </FormControl>
+                                    <FormMessage/>
+                                </FormItem>
+                            )}
+                        />
+
+                        {/* Active Status */}
+                        <FormField
+                            control={form.control}
+                            name="isActive"
+                            render={({field}) => (
+                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                                    <div className="space-y-0.5">
+                                        <FormLabel>Status:</FormLabel>
+                                        <div className="text-sm text-muted-foreground">
+                                            {field.value ? "Faol" : "Faol emas"}
+                                        </div>
+                                    </div>
+                                    <FormControl>
+                                        <Switch
+                                            checked={field.value}
+                                            onCheckedChange={field.onChange}
                                         />
                                     </FormControl>
                                     <FormMessage/>

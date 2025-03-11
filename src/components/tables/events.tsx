@@ -20,6 +20,20 @@ const EventsTable = ({data, onEdit, onDelete}: EventTableProps) => {
         return navigate(`/event/edit/${eventId}`);
     }
 
+    const getEventStatus = (event: SingleEventType) => {
+        if (!event.formattedFinishDate) return null;
+
+        if (event.formattedFinishDate.isFinished) {
+            return { label: "Tugagan", className: "text-gray-500 bg-gray-100" };
+        } else if (event.formattedFinishDate.isEnding) {
+            return { label: "Tugayapti", className: "text-amber-700 bg-amber-50" };
+        } else if (event.isActive) {
+            return { label: "Faol", className: "text-green-700 bg-green-50" };
+        } else {
+            return { label: "Faol emas", className: "text-red-700 bg-red-50" };
+        }
+    }
+
     return (
         <div className={"bg-white shadow rounded-md"}>
             <Table className="max-lg:w-[700px]">
@@ -29,6 +43,7 @@ const EventsTable = ({data, onEdit, onDelete}: EventTableProps) => {
                         <TableHead>Nomi</TableHead>
                         <TableHead>Muqova rasmi</TableHead>
                         <TableHead>Tugash sanasi</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead>CreatedAt</TableHead>
                         <TableHead>UpdatedAt</TableHead>
                         <TableHead>Actions</TableHead>
@@ -46,7 +61,28 @@ const EventsTable = ({data, onEdit, onDelete}: EventTableProps) => {
                                     src={event.imageUrl}
                                     alt="#"/>
                             </TableCell>
-                            <TableCell>{dateFormatter(String(event.finishDate), false)}</TableCell>
+                            <TableCell>
+                                {event.formattedFinishDate ? (
+                                    <div title={`${event.formattedFinishDate.date} ${event.formattedFinishDate.time}`}>
+                                        <div>{event.formattedFinishDate.date}</div>
+                                        <div>{event.formattedFinishDate.time}</div>
+                                        {event.formattedFinishDate.timeRemaining && (
+                                            <div className="text-sm text-gray-500 mt-1">
+                                                {event.formattedFinishDate.timeRemaining}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    dateFormatter(String(event.finishDate), true)
+                                )}
+                            </TableCell>
+                            <TableCell>
+                                {event.formattedFinishDate && getEventStatus(event) && (
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEventStatus(event)?.className}`}>
+                                        {getEventStatus(event)?.label}
+                                    </span>
+                                )}
+                            </TableCell>
                             <TableCell>{dateFormatter(event.createdAt)}</TableCell>
                             <TableCell>{dateFormatter(event.updatedAt)}</TableCell>
                             <TableCell>

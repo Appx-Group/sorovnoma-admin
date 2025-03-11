@@ -1,5 +1,13 @@
 import {SingleChannelType} from "@/types/channel";
 
+export type FormattedFinishDateType = {
+    date: string,
+    time: string,
+    timeRemaining: string,
+    isFinished: boolean,
+    isEnding: boolean
+}
+
 export type SingleEventType = {
     id: number,
     name: string,
@@ -12,14 +20,19 @@ export type SingleEventType = {
     subscribeChannels: SingleChannelType[],
     sentChannels: SingleChannelType[]
     createdAt: string,
-    updatedAt: string
+    updatedAt: string,
+    formattedFinishDate?: FormattedFinishDateType
 }
 
 export type CreateOrUpdateEventType = {
     name?: string
     descr?: string,
     image?: any,
+    imageUrl?: string,
+    imageId?: string,
+    imageName?: string,
     finishDate?: any,
+    isActive?: boolean,
     subscribeChannels?: string[],
     sentChannels: string[]
 }

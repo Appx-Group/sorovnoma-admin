@@ -31,7 +31,14 @@ export const EventSchema = z.object({
         .min(1, "Nomi bo'sh bo'lmasligi kerak!"),
     descr: z.string().optional(),
     finishDate: z
-        .any().optional(),
+        .date({
+            required_error: "Tugash sanasi kiritilishi kerak!",
+            invalid_type_error: "Noto'g'ri sana formati!"
+        })
+        .refine((date) => {
+            const minTime = new Date(new Date().getTime() + 10 * 60 * 1000); // 10 minutes from now
+            return date > minTime;
+        }, "Sana kamida 10 daqiqa kelajakda bo'lishi kerak"),
     isActive: z.boolean().optional().default(true),
     image: z.any({
         required_error: "muqova rasmi bo'sh bo'lmasligi kerak!",

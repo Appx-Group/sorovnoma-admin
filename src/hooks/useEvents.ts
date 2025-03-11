@@ -17,6 +17,16 @@ export const useGetEvents = (keyword?: string) => {
     });
 };
 
+export const useGetEndingSoonEvents = () => {
+    return useQuery({
+        queryKey: [queryKeys.GET_ENDING_SOON_EVENTS],
+        queryFn: () => {
+            return eventService.getEndingSoonEvents();
+        },
+        refetchOnWindowFocus: false,
+    });
+};
+
 export const useGetSingleEvent = (eventId: number) => {
     return useQuery({
         queryKey: [queryKeys.GET_SINGLE_EVENT],
@@ -26,7 +36,6 @@ export const useGetSingleEvent = (eventId: number) => {
         refetchOnWindowFocus: false,
     });
 };
-
 
 export const useCreateEvent = () => {
     const createEventModal = useCreateEventModal()
