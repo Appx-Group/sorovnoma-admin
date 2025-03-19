@@ -11,6 +11,7 @@ import { MdOutlineClear } from "react-icons/md";
 import { Button } from "./button"
 import { Input } from "./input"
 import { Label } from "./label"
+import { SelectShadCn, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select"
 
 // Function to get minimum allowed date time (10 minutes from now)
 export function getMinimumAllowedDateTime() {
@@ -51,6 +52,12 @@ export function validateAndFormatDate(dateValue: any): Date | undefined {
     return undefined;
   }
 }
+
+// Generate array of hours (00-23)
+const hoursOptions = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, '0'));
+
+// Generate array of minutes (00-59)
+const minutesOptions = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, '0'));
 
 const DateTimePicker = ({
   placeholder,
@@ -131,13 +138,13 @@ const DateTimePicker = ({
     }
   };
 
-  const handleTimeChange = () => {
+  const handleTimeChange = (newHours: string, newMinutes: string) => {
     if (!selectedDate) return;
     
     try {
       // Parse hours and minutes from input
-      const hrs = parseInt(hours);
-      const mins = parseInt(minutes);
+      const hrs = parseInt(newHours);
+      const mins = parseInt(newMinutes);
       
       // Validate hours and minutes
       if (isNaN(hrs) || hrs < 0 || hrs > 23) {
@@ -197,6 +204,13 @@ const DateTimePicker = ({
     today.setHours(0, 0, 0, 0);
     return today;
   }
+  
+  // Common time presets
+  const timePresets = [
+    { label: "Now", hours: new Date().getHours(), minutes: new Date().getMinutes() },
+    { label: "+30 min", hours: new Date(Date.now() + 30 * 60 * 1000).getHours(), minutes: new Date(Date.now() + 30 * 60 * 1000).getMinutes() },
+    { label: "+1 hour", hours: new Date(Date.now() + 60 * 60 * 1000).getHours(), minutes: new Date(Date.now() + 60 * 60 * 1000).getMinutes() },
+  ];
 
   return (
     <Popover
@@ -255,54 +269,89 @@ const DateTimePicker = ({
             initialFocus
             fromDate={getMinDate()}
           />
+          
+          {/* Time selector section */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <ClockIcon className="h-4 w-4" />
               <Label htmlFor="hours">Time</Label>
             </div>
-            <div className="flex gap-2">
-              <div>
-                <Input
-                  id="hours"
-                  className="w-16"
-                  value={hours}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    if (/^([0-1]?[0-9]|2[0-3])$/.test(value) || value === "") {
-                      setHours(value.padStart(2, "0"))
+            
+            {/* Quick time presets */}
+            <div className="flex gap-2 mb-2">
+              {timePresets.map((preset, index) => (
+                <Button 
+                  key={index}
+                  type="button"
+                  className="px-2 py-1 text-xs"
+                  onClick={() => {
+                    if (selectedDate) {
+                      const newHours = preset.hours.toString().padStart(2, '0');
+                      const newMinutes = preset.minutes.toString().padStart(2, '0');
+                      setHours(newHours);
+                      setMinutes(newMinutes);
+                      handleTimeChange(newHours, newMinutes);
                     }
                   }}
-                  type="text"
-                  placeholder="HH"
-                  maxLength={2}
-                />
-              </div>
+                  disabled={!selectedDate}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+            </div>
+            
+            {/* Time dropdown selectors */}
+            <div className="flex gap-2 items-center">
+              <SelectShadCn 
+                value={hours} 
+                onValueChange={(value: string) => {
+                  setHours(value);
+                }}
+                disabled={!selectedDate}
+              >
+                <SelectTrigger className="w-16">
+                  <SelectValue placeholder="HH" />
+                </SelectTrigger>
+                <SelectContent>
+                  {hoursOptions.map((hour) => (
+                    <SelectItem key={hour} value={hour}>
+                      {hour}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </SelectShadCn>
+              
               <span className="text-lg">:</span>
-              <div>
-                <Input
-                  id="minutes"
-                  className="w-16"
-                  value={minutes}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    if (/^[0-5]?[0-9]$/.test(value) || value === "") {
-                      setMinutes(value.padStart(2, "0"))
-                    }
-                  }}
-                  type="text"
-                  placeholder="MM"
-                  maxLength={2}
-                />
-              </div>
+              
+              <SelectShadCn 
+                value={minutes} 
+                onValueChange={(value: string) => {
+                  setMinutes(value);
+                }}
+                disabled={!selectedDate}
+              >
+                <SelectTrigger className="w-16">
+                  <SelectValue placeholder="MM" />
+                </SelectTrigger>
+                <SelectContent>
+                  {minutesOptions.map((minute) => (
+                    <SelectItem key={minute} value={minute}>
+                      {minute}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </SelectShadCn>
+              
               <Button 
                 type="button" 
                 className="ml-2"
-                onClick={handleTimeChange}
+                onClick={() => handleTimeChange(hours, minutes)}
                 disabled={!selectedDate}
               >
                 Apply
               </Button>
             </div>
+            
             {error && (
               <div className="text-red-500 text-sm mt-1">{error}</div>
             )}
